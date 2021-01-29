@@ -51,12 +51,14 @@ import {
   NotebooksApiSchedule,
   NotebooksApiExecutionTemplate,
   NotebooksApiSchedulerAcceleratorConfig,
+  EnableTrainingAPIResponse,
 } from '../interfaces';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { Notebook } from '@jupyterlab/notebook';
 
 export const NOTEBOOKS_API_BASE =
   'https://autopush-notebooks.sandbox.googleapis.com/v1';
+export const SERVICE_MANAGER = 'https://servicemanagement.googleapis.com/v1';
 const STORAGE = 'https://storage.googleapis.com/storage/v1';
 const STORAGE_UPLOAD = 'https://storage.googleapis.com/upload/storage/v1';
 const POLL_INTERVAL = 2000;
@@ -400,6 +402,39 @@ export class GcpService {
     }
   }
 
+  async isTrainingAPIEnabled(): Promise<boolean> {
+    try {
+      const projectId = await this.projectId;
+      const params: { [k: string]: string } = {};
+      await this._transportService.submit<{}>({
+        path: `https://content-ml.googleapis.com/v1/projects/${projectId}/jobs`,
+        params,
+      });
+      return true;
+    } catch (err) {
+      console.log(err);
+      return err.result.error.code === 403 ? false : true;
+    }
+  }
+
+  async enableTrainingAPI(): Promise<EnableTrainingAPIResponse> {
+    try {
+      const projectId = await this.projectId;
+      const pendingOperation = await this._transportService.submit<Operation>({
+        path: `${SERVICE_MANAGER}/services/ml.googleapis.com:enable`,
+        method: POST,
+        body: { consumerId: `project:${projectId}` },
+      });
+      return await this._pollAndParseOperation(
+        pendingOperation,
+        `${SERVICE_MANAGER}/${pendingOperation.result.name}`
+      );
+    } catch (err) {
+      console.error('Unable to enable necessary AI Platform Training API');
+      handleApiError(err);
+    }
+  }
+
   // This catches all errors to prevent a Promise.all from failing.
   private async getLatestExecutionForSchedule(
     scheduleId: string
@@ -419,7 +454,10 @@ export class GcpService {
     return undefined;
   }
 
-  private async _pollAndParseOperation(response: ApiResponse<Operation>) {
+  private async _pollAndParseOperation(
+    response: ApiResponse<Operation>,
+    operationUrl?: string
+  ) {
     if (response.result.error) {
       return {
         error: `${response.result.error.code}: ${response.result.error.message}`,
@@ -427,9 +465,10 @@ export class GcpService {
     }
     if (!response.result.done) {
       const operationName = response.result.name;
-      const pollOperationsResponse = await this._pollOperation(
-        `${NOTEBOOKS_API_BASE}/${operationName}`
-      );
+      const pollUrl = operationUrl
+        ? operationUrl
+        : `${NOTEBOOKS_API_BASE}/${operationName}`;
+      const pollOperationsResponse = await this._pollOperation(pollUrl);
       if (pollOperationsResponse.error) {
         return {
           error: `${pollOperationsResponse.error.code}: ${pollOperationsResponse.error.message}`,

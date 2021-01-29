@@ -39,6 +39,45 @@ exports[`SchedulerDialog Renders closed Dialog without Notebook: Dialog Closed 1
 </WithStyles(ForwardRef(Dialog))>
 `;
 
+exports[`SchedulerDialog Renders enable api component: EnableAPI 1`] = `
+<WithStyles(ForwardRef(Dialog))
+  open={false}
+  scroll="body"
+>
+  <header
+    className="header_frzww1y"
+  >
+    <span
+      className="title_fiw0lep"
+    >
+      Submit notebook to Executor
+      <Badge
+        value="experimental"
+      />
+    </span>
+    <IconButtonMenu
+      icon={<WithStyles(MoreVertIcon) />}
+      menuItems={[Function]}
+    />
+  </header>
+  <main
+    className="main_fm76rtl"
+  >
+    <div
+      className="column_fghohlb spacing_f1nee3fk"
+    >
+      <Message
+        asActivity={true}
+        text="Checking IAM Permissions"
+      />
+      <ActionBar
+        onDialogClose={[Function]}
+      />
+    </div>
+  </main>
+</WithStyles(ForwardRef(Dialog))>
+`;
+
 exports[`SchedulerDialog Renders with Checking IAM Message: IamMessage 1`] = `
 <WithStyles(ForwardRef(Dialog))
   open={true}
@@ -144,6 +183,17 @@ exports[`SchedulerDialog Renders with SchedulerForm: SchedulerForm 1`] = `
     <WithFormik(InnerSchedulerForm)
       gcpService={
         Object {
+          "isTrainingAPIEnabled": [MockFunction] {
+            "calls": Array [
+              Array [],
+            ],
+            "results": Array [
+              Object {
+                "type": "return",
+                "value": Promise {},
+              },
+            ],
+          },
           "transportService": undefined,
         }
       }

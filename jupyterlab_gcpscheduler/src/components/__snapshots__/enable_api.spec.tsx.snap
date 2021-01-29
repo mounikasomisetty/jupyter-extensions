@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnableAPI Renders enable api message 1`] = `
+<div
+  className="spacing_fckpryn"
+>
+  <p>
+    In order to use Notebook Executor, the
+     
+    <LearnMoreLink
+      href="https://cloud.google.com/ai-platform/training/pricing"
+      text="AI Platform Training API"
+    />
+     
+    must be enabled. This may incur additional charges. By clicking
+     
+    <i>
+      continue
+    </i>
+    , you are agreeing to the terms of service for this API.
+  </p>
+  <ActionBar
+    error={null}
+    onDialogClose={[MockFunction]}
+  >
+    <SubmitButton
+      actionPending={false}
+      onClick={[Function]}
+      text="Continue"
+    />
+  </ActionBar>
+</div>
+`;

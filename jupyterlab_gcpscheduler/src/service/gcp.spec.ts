@@ -18,7 +18,7 @@
 import { ServerConnection } from '@jupyterlab/services';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { IMPORT_DIRECTORY } from '../data';
-import { GcpService, NOTEBOOKS_API_BASE } from './gcp';
+import { GcpService, NOTEBOOKS_API_BASE, SERVICE_MANAGER } from './gcp';
 import { ExecuteNotebookRequest } from '../interfaces';
 import {
   TEST_PROJECT,
@@ -793,6 +793,109 @@ describe('GcpService', () => {
             },
           },
         }),
+      });
+    });
+  });
+
+  describe('Initilization', () => {
+    it('Check API status', async () => {
+      const returned = {};
+      mockSubmit.mockReturnValue(asApiResponse(returned));
+
+      const apiEnabled = await gcpService.isTrainingAPIEnabled();
+
+      expect(apiEnabled).toEqual(true);
+      expect(mockSubmit).toHaveBeenCalledWith({
+        params: {},
+        path: 'https://content-ml.googleapis.com/v1/projects/test-project/jobs',
+      });
+    });
+
+    it('API not enabled', async () => {
+      const error = {
+        error: {
+          code: 403,
+          message: 'Not enabled',
+        },
+      };
+      mockSubmit.mockRejectedValue(asApiResponse(error));
+      const apiEnabled = await gcpService.isTrainingAPIEnabled();
+
+      expect(apiEnabled).toEqual(false);
+      expect(mockSubmit).toHaveBeenCalledWith({
+        params: {},
+        path: 'https://content-ml.googleapis.com/v1/projects/test-project/jobs',
+      });
+    });
+
+    it('API enabled with error', async () => {
+      const error = {
+        error: { code: 402, message: 'Other error' },
+      };
+      mockSubmit.mockRejectedValue(asApiResponse(error));
+
+      const apiEnabled = await gcpService.isTrainingAPIEnabled();
+
+      expect(apiEnabled).toEqual(true);
+      expect(mockSubmit).toHaveBeenCalledWith({
+        params: {},
+        path: 'https://content-ml.googleapis.com/v1/projects/test-project/jobs',
+      });
+    });
+
+    it('Enable API', async () => {
+      const returned = {
+        name: 'api_enabled',
+        done: true,
+      };
+      mockSubmit.mockReturnValue(asApiResponse(returned));
+
+      const apiEnabled = await gcpService.enableTrainingAPI();
+
+      expect(apiEnabled).toEqual({});
+      expect(mockSubmit).toHaveBeenCalledWith({
+        method: 'POST',
+        path: `${SERVICE_MANAGER}/services/ml.googleapis.com:enable`,
+        body: { consumerId: 'project:test-project' },
+      });
+    });
+
+    it('Enable API with error response', async () => {
+      const returned = {
+        name: 'api_enabled',
+        error: { code: 800, message: 'This is an error' },
+        done: true,
+      };
+      mockSubmit.mockReturnValue(asApiResponse(returned));
+
+      const apiEnabled = await gcpService.enableTrainingAPI();
+      expect(apiEnabled).toEqual({ error: '800: This is an error' });
+      expect(mockSubmit).toHaveBeenCalledWith({
+        method: 'POST',
+        path: `${SERVICE_MANAGER}/services/ml.googleapis.com:enable`,
+        body: { consumerId: 'project:test-project' },
+      });
+    });
+
+    it('Throws an error when enabling API', async () => {
+      const error = {
+        error: {
+          status: 'UNAVAILABLE',
+          message: 'Could not enable API',
+        },
+      };
+      mockSubmit.mockRejectedValue(asApiResponse(error));
+
+      expect.assertions(2);
+      try {
+        await gcpService.enableTrainingAPI();
+      } catch (err) {
+        expect(err).toEqual('UNAVAILABLE: Could not enable API');
+      }
+      expect(mockSubmit).toHaveBeenCalledWith({
+        method: 'POST',
+        path: `${SERVICE_MANAGER}/services/ml.googleapis.com:enable`,
+        body: { consumerId: 'project:test-project' },
       });
     });
   });

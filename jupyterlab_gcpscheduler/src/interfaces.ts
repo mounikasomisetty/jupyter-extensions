@@ -46,6 +46,10 @@ export interface Operation {
   response?: ApiClientObjectMap<any>;
 }
 
+export interface EnableTrainingAPIResponse {
+  error?: string;
+}
+
 export interface CreateScheduleResponse {
   error?: string;
 }

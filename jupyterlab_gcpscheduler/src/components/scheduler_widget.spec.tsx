@@ -24,7 +24,9 @@ import { ProjectStateService } from '../service/project_state';
 
 describe('GcpSchedulerWidget', () => {
   const mockPrjectStateService = {} as ProjectStateService;
-  const mockGcpService = {} as GcpService;
+  const mockGcpService = ({
+    isTrainingAPIEnabled: jest.fn(),
+  } as unknown) as GcpService;
   // Need to mock more of the settings behavior since we can't prevent render
   // from being called
   const mockSettings = ({

@@ -40,6 +40,7 @@ import {
 } from '../service/project_state';
 import { SchedulerForm } from './scheduler_form';
 import { ActionBar } from './action_bar';
+import { EnableApi } from './enable_api';
 
 /** Information provided to the GcpSchedulerWidget */
 export interface LaunchSchedulerRequest {
@@ -59,6 +60,8 @@ export type OnDialogClose = () => void;
 export type OnScheduleTypeChange = (creatingExecution: boolean) => void;
 /** Definition for a function that changes the displayed element. */
 export type OnShowFormChange = (showCreateForm: boolean) => void;
+/** Callback function that accepts a boolean to show if the api has been enabled  */
+export type OnSetupRequiredChange = (enabled: boolean) => void;
 
 /** Extension settings. */
 export interface GcpSettings {
@@ -88,6 +91,7 @@ interface State {
   submittedMessage?: SubmittedMessage;
   creatingExecution: boolean;
   showCreateForm: boolean;
+  setupRequired: boolean;
 }
 
 const localStyles = stylesheet({
@@ -131,17 +135,22 @@ export class SchedulerDialog extends React.Component<Props, State> {
       dialogClosedByUser: false,
       creatingExecution: true,
       showCreateForm: true,
+      setupRequired: false,
     };
     this._settingsChanged = this._settingsChanged.bind(this);
     this._onDialogClose = this._onDialogClose.bind(this);
     this._onScheduleTypeChange = this._onScheduleTypeChange.bind(this);
     this._onShowFormChange = this._onShowFormChange.bind(this);
+    this._onSetupRequiredChange = this._onSetupRequiredChange.bind(this);
   }
 
   /** Establishes the binding for Settings Signal and invokes the handler. */
-  componentDidMount() {
+  async componentDidMount() {
     this.props.settings.changed.connect(this._settingsChanged);
     this._settingsChanged(this.props.settings);
+    this.setState({
+      setupRequired: !(await this.props.gcpService.isTrainingAPIEnabled()),
+    });
   }
 
   componentWillUnmount() {
@@ -196,7 +205,12 @@ export class SchedulerDialog extends React.Component<Props, State> {
   }
 
   private _getDialogContent(): JSX.Element {
-    const { gcpSettings, permissions, submittedMessage } = this.state;
+    const {
+      gcpSettings,
+      permissions,
+      submittedMessage,
+      setupRequired,
+    } = this.state;
     const { gcpService, request } = this.props;
     const hasNotebook = !!(request && request.notebook);
     if (submittedMessage) {
@@ -226,6 +240,14 @@ export class SchedulerDialog extends React.Component<Props, State> {
           <ActionBar onDialogClose={this._onDialogClose} />
         </div>
       );
+    } else if (setupRequired) {
+      return (
+        <EnableApi
+          gcpService={gcpService}
+          onSetupRequiredChange={this._onSetupRequiredChange}
+          onDialogClose={this._onDialogClose}
+        />
+      );
     } else {
       return permissions ? (
         <SchedulerForm
@@ -246,7 +268,6 @@ export class SchedulerDialog extends React.Component<Props, State> {
         </div>
       );
     }
-    return null;
   }
 
   private _onResetSettings(closeHandler: MenuCloseHandler) {
@@ -286,11 +307,16 @@ export class SchedulerDialog extends React.Component<Props, State> {
     this.setState({ showCreateForm });
   }
 
+  private _onSetupRequiredChange(setupRequired: boolean) {
+    this.setState({ setupRequired });
+  }
+
   private _onDialogClose() {
     this.setState({
       dialogClosedByUser: true,
       showCreateForm: true,
       creatingExecution: true,
+      setupRequired: false,
     });
   }
 

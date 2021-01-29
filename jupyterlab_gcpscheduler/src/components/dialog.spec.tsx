@@ -45,17 +45,19 @@ describe('SchedulerDialog', () => {
   const mockSettingsChangedConnect = jest.fn();
   const mockSettingsSet = jest.fn();
   const mockGetPermissions = jest.fn();
+  const mockIsTrainingAPIEnabled = jest.fn();
   const mockProjectStateService = ({
     set projectId(projectId: string) {
       mockSetProjectId(projectId);
     },
     getPermissions: mockGetPermissions,
   } as unknown) as ProjectStateService;
-  const mockGcpService = {
+  const mockGcpService = ({
     set transportService(transportService: TransportService) {
       mockSetTransportService(transportService);
     },
-  } as GcpService;
+    isTrainingAPIEnabled: mockIsTrainingAPIEnabled,
+  } as unknown) as GcpService;
   const fakeNotebook = NBTestUtils.createNotebook();
   NBTestUtils.populateNotebook(fakeNotebook);
   const launchSchedulerRequest: LaunchSchedulerRequest = {
@@ -76,12 +78,32 @@ describe('SchedulerDialog', () => {
     } as unknown) as ISettingRegistry.ISettings;
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
     jest.useFakeTimers();
     mockGetPermissions.mockReturnValue(getPermissionsPromise);
     launchSchedulerRequest.notebookName = null;
     launchSchedulerRequest.notebook = null;
+    const resolvedAPIEnableCheck = Promise.resolve(true);
+    mockIsTrainingAPIEnabled.mockResolvedValue(resolvedAPIEnableCheck);
+    await resolvedAPIEnableCheck;
+  });
+
+  it('Renders enable api component', async () => {
+    const settings = getSettings({});
+    const resolvedAPIEnableCheck = Promise.resolve(false);
+    mockIsTrainingAPIEnabled.mockResolvedValue(resolvedAPIEnableCheck);
+    const dialog = shallow(
+      <SchedulerDialog
+        projectStateService={mockProjectStateService}
+        gcpService={mockGcpService}
+        request={launchSchedulerRequest}
+        settings={settings}
+      />
+    );
+    await resolvedAPIEnableCheck;
+    expect(settings.changed.connect).toHaveBeenCalled();
+    await expect(dialog).toMatchSnapshot('EnableAPI');
   });
 
   it('Renders closed Dialog without Notebook', async () => {
@@ -108,7 +130,6 @@ describe('SchedulerDialog', () => {
     launchSchedulerRequest.notebook = {
       defaultKernelName: 'Python 2',
     } as INotebookModel;
-
     const dialog = shallow(
       <SchedulerDialog
         projectStateService={mockProjectStateService}
