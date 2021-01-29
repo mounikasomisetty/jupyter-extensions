@@ -406,7 +406,7 @@ export class GcpService {
     try {
       const projectId = await this.projectId;
       const params: { [k: string]: string } = {};
-      await this._transportService.submit<{}>({
+      await this._transportService.submit<Record<string, unknown>>({
         path: `https://content-ml.googleapis.com/v1/projects/${projectId}/jobs`,
         params,
       });
