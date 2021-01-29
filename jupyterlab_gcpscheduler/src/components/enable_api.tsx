@@ -21,7 +21,7 @@ import { stylesheet } from 'typestyle';
 import { ActionBar } from './action_bar';
 import { OnSetupRequiredChange, OnDialogClose } from './dialog';
 
-const LEARN_MORE_API = 'https://cloud.google.com/ai-platform/training/pricing';
+const LEARN_MORE_API = 'https://cloud.google.com/ai-platform/training/docs';
 
 interface Props {
   gcpService: GcpService;
